@@ -25,7 +25,7 @@ The goals / steps of this project are the following:
 [image8]: ./output_images/label2.png
 [image9]: ./output_images/label3.png
 [image10]: ./output_images/label4.png
-[video1]: ./project_video_output2.mp4
+[video1]: ./project_video_output3.mp4
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/513/view) Points
 ### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
@@ -54,7 +54,12 @@ Here is an example using the `gray` color space and HOG parameters of `orientati
 
 #### 2. Explain how you settled on your final choice of HOG parameters.
 
-I tried various combinations of parameters and choose `color_space='LUV'`, `orient=9`, `pix_per_cell=8`, `cell_per_block=2`, `hog_channel=0`.
+I tried various combinations of parameters.
+
+*  `color_space='RGB'`, `orient=8`, `pix_per_cell=8`, `cell_per_block=2`, `hog_channel=0`. SVM result is good, but windows on test image can not cover the whole car.
+*  Tried `color_space='LUV'`, `color_space='HLS'`, `color_space='HSV'`, similar result.
+*  Tried  `orient=8`, `orient=10`, `orient=12`, change is minor.
+*  Think of using all channels instead of channel 0, turns out it works better. However, it has more features which make the detection slower. Finally choose`color_space='RGB'`, `orient=8`, `pix_per_cell=8`, `cell_per_block=2`, `hog_channel="ALL"`. 
 
 #### 3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
 
@@ -64,7 +69,11 @@ I trained a linear SVM using all spatial feature, hist feature and hog features.
 
 #### 1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
 
-I decided to search window positions using `slide_window()` with multiple `xy_window_sizes=[(64,64), (96,96), (192,96)]`, `xy_overlap=(0.5, 0.5)`, `y_start_stop = [360, 600]` of the IPython notebook.
+I decided to search window positions using `slide_window()` with multiple `xy_window_sizes=[(80,80), (120,120), (160, 160)]`, `xy_overlap=(0.75, 0.75)`, `y_start_stop = [360, 600]` of the IPython notebook.
+
+* I first tried `xy_window_sizes=[(96,96)]`,  `xy_overlap=(0.5, 0.5)`, but it misses small cars(cars far way).
+* Then I tried  `xy_window_sizes=[(64,64), (96,96)]`,  `xy_overlap=(0.5, 0.5)`, but it captures too much false positives.
+* Then I change the window scale to  `xy_window_sizes=[(80,80), (120,120), (160,160)]`,  `xy_overlap=(0.5, 0.5)`. This time it captures both small and bit cars, however the overlap is not enough to have more boxes around car. Therefore overlap was later increased to 0.75.
 
 #### 2. Show some examples of test images to demonstrate how your pipeline is working. 
 
@@ -108,3 +117,18 @@ Here's an example result showing the heatmap from a series of frames of video, t
 
 ### Here the resulting bounding boxes are drawn onto the last frame in the series:
 ![alt text][image8]
+
+---
+### Discussion
+
+#### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
+
+* The major issue I faced was false positive and car box boundary. 
+  * I have tried quite a few HOG parameters and choose best one by looking at SVM accuracy and test image performance.
+  * With the hint from project review, to store heatmap of previous frames will dramatically help both reduce false positive and smooth car boxes.
+  * Maybe combine multiple HOG feature for SVM will help too.
+  * Could use a better classifier, such as SVM with nonlinear kernel, or boosting tree model.
+* The video detection efficiency is also a concern.
+  * Could improve HOG calculation using the technique in the course, although no time to experiment it.
+  * Could continue to explore HOG parameter, and/or reduce SVM feature vector size to increase the detection efficiency.
+  * Could do parallelization on frame process to reduce video process time. 
